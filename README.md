@@ -17,5 +17,6 @@ It is a CRUD program so the user can manipulate this database as they wish via t
 
 ## Installation
 
-*Python must be installed in the local machhine*\n
+*Python must be installed in the local machhine*
+
 The program can be execute via the terminal.
