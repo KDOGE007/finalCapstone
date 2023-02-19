@@ -89,6 +89,10 @@ def update_book_view():
         [sg.Text(books_text)],
         [sg.Text("Please enter the id of the title you wish to update: ")],
         [sg.Text("ID", size=(15, 1)), sg.InputText(key="update_id")],
+        [sg.Text("Please enter the detail you wish to update: ")],
+        [sg.Text("Title", size=(15, 1)), sg.InputText(key="update_title")],
+        [sg.Text("Author", size=(15, 1)), sg.InputText(key="update_author")],
+        [sg.Text("Quantity", size=(15, 1)), sg.InputText(key="update_qty")],
         [sg.Button("Update"), sg.Button("Cancel")],
     ]
     return sg.Window("Update a book", layout, modal=True, finalize=True)
@@ -166,7 +170,7 @@ while True:
             try:
                 int(values["qnty"])
             except:
-                sg.Popup("Quantity is not an interger.")
+                sg.Popup("Quantity entered is not an interger.")
                 ready_to_commit = False
         # write to database if all data is correct
         if ready_to_commit:
@@ -186,6 +190,73 @@ while True:
                 sg.Popup(e)
             finally:
                 db.close()
+
+    if event == "2":
+        window2 = update_book_view()
+    if event == "Update":
+        ready_to_commit = True
+        id
+        update_id = values["update_id"]
+        if update_id == "":
+            sg.Popup("Empty field detected, Please populate every field.")
+            ready_to_commit = False
+        else:
+            # check if the id entered is an interger
+            try:
+                int_test = int(update_id)
+            except:
+                sg.Popup("ID entered is not an interger.")
+                ready_to_commit = False
+        db = sqlite3.connect("ebookstore")
+        cursor = db.cursor()
+        # check if the Id exist
+        if update_id != "" and isinstance(int_test, int):
+            cursor.execute("""SELECT id FROM books WHERE id = ?""", (update_id,))
+            data = cursor.fetchall()
+            if len(data) == 0:
+                sg.Popup("ID entered deos not exist.")
+                ready_to_commit = False
+        # check if new quantity is an interger
+        update_qty = values["update_qty"]
+        if update_qty != "":
+            try:
+                int_test = int(update_qty)
+            except:
+                sg.Popup("Quantity entered is not an interger.")
+                ready_to_commit = False
+
+        # check if all fields are null so no update to the database is required.
+        update_title = values["update_title"]
+        update_author = values["update_author"]
+        if update_author == "" and update_title == "" and update_qty == "":
+            sg.Popup("No new information was entered.")
+            window.close()
+        # update to database
+        if ready_to_commit:
+            try:
+                if update_title != "":
+                    cursor.execute(
+                        """UPDATE books SET Title = ? WHERE id = ?""",
+                        (update_title, update_id),
+                    )
+                    db.commit()
+                if update_author != "":
+                    cursor.execute(
+                        """UPDATE books SET Author = ? WHERE id = ?""",
+                        (update_author, update_id),
+                    )
+                    db.commit()
+                if update_qty != "":
+                    cursor.execute(
+                        """UPDATE books SET Qty = ? WHERE id = ?""",
+                        (update_qty, update_id),
+                    )
+                    db.commit()
+                sg.Popup("Detail has been updated in the database.")
+            except Exception as e:
+                sg.Popup(e)
+        db.close()
+        window.close()
 
     if event == "3":
         window2 = delete_book_view()
@@ -211,6 +282,7 @@ while True:
             if len(data) == 0:
                 sg.Popup("ID entered deos not exist.")
                 ready_to_commit = False
+
         if ready_to_commit:
             try:
                 cursor.execute("""DELETE FROM books WHERE id = ?""", (delete_id,))
@@ -253,124 +325,86 @@ while True:
 
 window.close()
 
-# # main menu
-user_input = None
-while user_input != 0:
-    try:
-        if user_input == 2:
-            db = sqlite3.connect("ebookstore")
-            cursor = db.cursor()
-            # print all books id and title for the user to choose from
-            cursor.execute("""Select * FROM books""")
-            for row in cursor:
-                print("ID: {0} Title: {1} ".format(row[0], row[1]))
-            print("\n")
+# if user_input == 2:
+#     db = sqlite3.connect("ebookstore")
+#     cursor = db.cursor()
+#     # print all books id and title for the user to choose from
+#     cursor.execute("""Select * FROM books""")
+#     for row in cursor:
+#         print("ID: {0} Title: {1} ".format(row[0], row[1]))
+#     print("\n")
 
-            # get id input from the user
-            try:
-                query_id = int(
-                    input(
-                        "Please enter the id of the title you wish to update: "
-                    ).strip()
-                )
+#     # get id input from the user
+#     try:
+#         query_id = int(
+#             input(
+#                 "Please enter the id of the title you wish to update: "
+#             ).strip()
+#         )
 
-                # check if this id exist in the database
-                cursor.execute("""SELECT id FROM books WHERE id = ?""", (query_id,))
-                data = cursor.fetchall()
-                if len(data) == 0:
-                    print("There is no records in the database with that id.")
-                else:
-                    # ask the user which info they want to update
-                    option_isValid = False
-                    while not option_isValid:
-                        try:
-                            user_option = int(
-                                input(
-                                    "Please enter the number below that corresponded to what you would like to update:\n1 - Title \n2 - Author \n3 - Quantity \n0 - Back to Main menu\n:"
-                                )
-                            )
-                            # title update
-                            if user_option == 1:
-                                option_isValid = True
-                                updated_title = input("Please enter a new title: ")
-                                cursor.execute(
-                                    """UPDATE books SET Title = ? WHERE id = ?""",
-                                    (updated_title, query_id),
-                                )
-                                db.commit()
-                                print("Title has been updated")
-                                break
-                            # author update
-                            if user_option == 2:
-                                option_isValid = True
-                                updated_author = input("Please enter a new author: ")
-                                cursor.execute(
-                                    """UPDATE books SET Author = ? WHERE id = ?""",
-                                    (updated_author, query_id),
-                                )
-                                db.commit()
-                                print("Author has been updated")
-                                break
-                            # qnty update
-                            if user_option == 3:
-                                option_isValid = True
-                                try:
-                                    updated_qty = int(
-                                        input("Please enter a new quantity: ")
-                                    )
-                                    cursor.execute(
-                                        """UPDATE books SET Qty = ? WHERE id = ?""",
-                                        (updated_qty, query_id),
-                                    )
-                                    db.commit()
-                                    print("Quantity has been updated")
-                                    break
-                                except Exception as e:
-                                    print(e)
-                            # Back to the main menu
-                            if user_option == 0:
-                                break
-                            else:
-                                print(
-                                    "Invalid input. Please enter a number from 0 to 3"
-                                )
-                        except:
-                            print("Invalid input")
-            except Exception as e:
-                print(e)
-            # close db connection
-            db.close()
-        if user_input == 4:
-            db = sqlite3.connect("ebookstore")
-            cursor = db.cursor()
-            # show all the books title in the database
-            cursor.execute("""Select * FROM books""")
-            for row in cursor:
-                print("ID: {0} Title: {1} ".format(row[0], row[1]))
-            print("\n")
-            # ask the user for the title to look for
-            query_title = input("Please enter the name of the title: ").strip()
-            # check if the query exist in the database
-            cursor.execute(
-                """SELECT Title FROM books WHERE Title = ?""", (query_title,)
-            )
-            data = cursor.fetchall()
-            if len(data) == 0:
-                print("There is no records in the database with that title.")
-            # print the book detail
-            else:
-                cursor.execute(
-                    """SELECT * FROM books WHERE Title = ?""", (query_title,)
-                )
-                for row in cursor:
-                    print(
-                        "ID: {0} Title: {1} \tAuthor: {2} Qty: {3}".format(
-                            row[0], row[1], row[2], row[3]
-                        )
-                    )
-            db.close()
-        # quit program
-        if user_input == 0:
-            break
-    except Exception as e:
-        print(e)
+#         # check if this id exist in the database
+#         cursor.execute("""SELECT id FROM books WHERE id = ?""", (query_id,))
+#         data = cursor.fetchall()
+#         if len(data) == 0:
+#             print("There is no records in the database with that id.")
+#         else:
+#             # ask the user which info they want to update
+#             option_isValid = False
+#             while not option_isValid:
+#                 try:
+#                     user_option = int(
+#                         input(
+#                             "Please enter the number below that corresponded to what you would like to update:\n1 - Title \n2 - Author \n3 - Quantity \n0 - Back to Main menu\n:"
+#                         )
+#                     )
+#                     # title update
+#                     if user_option == 1:
+#                         option_isValid = True
+#                         updated_title = input("Please enter a new title: ")
+#                         cursor.execute(
+#                             """UPDATE books SET Title = ? WHERE id = ?""",
+#                             (updated_title, query_id),
+#                         )
+#                         db.commit()
+#                         print("Title has been updated")
+#                         break
+#                     # author update
+#                     if user_option == 2:
+#                         option_isValid = True
+#                         updated_author = input("Please enter a new author: ")
+#                         cursor.execute(
+#                             """UPDATE books SET Author = ? WHERE id = ?""",
+#                             (updated_author, query_id),
+#                         )
+#                         db.commit()
+#                         print("Author has been updated")
+#                         break
+#                     # qnty update
+#                     if user_option == 3:
+#                         option_isValid = True
+#                         try:
+#                             updated_qty = int(
+#                                 input("Please enter a new quantity: ")
+#                             )
+#                             cursor.execute(
+#                                 """UPDATE books SET Qty = ? WHERE id = ?""",
+#                                 (updated_qty, query_id),
+#                             )
+#                             db.commit()
+#                             print("Quantity has been updated")
+#                             break
+#                         except Exception as e:
+#                             print(e)
+#                     # Back to the main menu
+#                     if user_option == 0:
+#                         break
+#                     else:
+#                         print(
+#                             "Invalid input. Please enter a number from 0 to 3"
+#                         )
+#                 except:
+#                     print("Invalid input")
+#     except Exception as e:
+#         print(e)
+#     # close db connection
+#     db.close()
