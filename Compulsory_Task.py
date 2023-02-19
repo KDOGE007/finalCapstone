@@ -1,4 +1,69 @@
 import sqlite3
+import PySimpleGUI as sg
+
+
+def main_menu():
+    layout = [
+        [sg.Text("Welcome to the book database.")],
+        [sg.Text("Please enter the operation :")],
+        [sg.Button("1"), sg.Text("Add a book")],
+        [sg.Button("2"), sg.Text("Update a book")],
+        [sg.Button("3"), sg.Text("Delete a book")],
+        [sg.Button("4"), sg.Text("Search a book")],
+        [sg.Button("QUIT")],
+    ]
+    return sg.Window("Main Menu")
+
+
+def add_book():
+    db = sqlite3.connect("ebookstore")
+    cursor = db.cursor()
+    cursor.execute("""Select * FROM books""")
+    # print all the books in the database
+    for row in cursor:
+        books_text = ""
+        books_text = "ID: {0} Title: {1} ".format(row[0], row[1]) + "\n"
+        # this will get the last id number
+        id = row[0]
+    # new id
+    id = id + 1
+    title_to_add = input("Please enter the title you like to add: ")
+    author_to_add = input("Please enter the Author of the title: ")
+    try:
+        qnty_to_add = int(input("Please enter the quantity of the book: "))
+        cursor.execute(
+            """INSERT INTO books (id, Title, Author, Qty) VALUES(?,?,?,?)""",
+            (id, title_to_add, author_to_add, qnty_to_add),
+        )
+        db.commit()
+        print("Entry has been added")
+    except Exception as e:
+        print(e)
+    db.close()
+    layout = [
+        [sg.Text("You have selected option 1")],
+        [sg.Text(books_text)],
+        [sg.Text("Please enter the title you like to add: ")],
+    ]
+    return sg.Window("Add a book")
+
+
+# Create the window
+window1, window2 = main_menu(), None  # start off with 1 window open
+
+while True:
+    window, event, values = sg.read_all_windows()
+    # End program if user closes window or
+    # presses the OK button
+    if event == "1":
+        window1 = add_book()
+    if event == sg.WIN_CLOSED or event == "Exit":
+        window.close()
+        if window == window2:  # if closing win 2, mark as closed
+            window2 = None
+        elif window == window1:  # if closing win 1, exit program
+            break
+window.close()
 
 # Creates or opens a file called ebookstore with a SQLite3
 db = sqlite3.connect("ebookstore")
