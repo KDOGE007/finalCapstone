@@ -1,4 +1,5 @@
 import sqlite3
+from typing import Type
 import PySimpleGUI as sg
 
 
@@ -50,7 +51,7 @@ def main_menu():
     return sg.Window("Main Menu", layout, finalize=True)
 
 
-def add_book():
+def add_book_view():
     db = sqlite3.connect("ebookstore")
     cursor = db.cursor()
     cursor.execute("""Select * FROM books""")
@@ -61,6 +62,7 @@ def add_book():
         books_text = books_text + "ID: {0} Title: {1} ".format(row[0], row[1]) + "\n"
         # this will get the last id number
         lastId = row[0]
+    db.close()
     layout = [
         [sg.Text("You have selected option 1")],
         [sg.Text(books_text)],
@@ -74,36 +76,63 @@ def add_book():
     return sg.Window("Add a book", layout, modal=True, finalize=True)
 
 
-def update_book():
+def update_book_view():
     db = sqlite3.connect("ebookstore")
     cursor = db.cursor()
     cursor.execute("""Select * FROM books""")
+    books_text = ""
     for row in cursor:
         books_text = books_text + "ID: {0} Title: {1} ".format(row[0], row[1]) + "\n"
+    db.close()
     layout = [
         [sg.Text("You have selected option 2")],
         [sg.Text(books_text)],
         [sg.Text("Please enter the id of the title you wish to update: ")],
-        [sg.Text("ID", size=(15, 1)), sg.InputText(key="id")],
+        [sg.Text("ID", size=(15, 1)), sg.InputText(key="update_id")],
         [sg.Button("Update"), sg.Button("Cancel")],
     ]
     return sg.Window("Update a book", layout, modal=True, finalize=True)
 
 
-def delete_book():
+def delete_book_view():
     db = sqlite3.connect("ebookstore")
     cursor = db.cursor()
     cursor.execute("""Select * FROM books""")
+    books_text = ""
     for row in cursor:
         books_text = books_text + "ID: {0} Title: {1} ".format(row[0], row[1]) + "\n"
+    db.close()
     layout = [
         [sg.Text("You have selected option 3")],
         [sg.Text(books_text)],
         [sg.Text("Please enter the id of the title you wish to delete: ")],
-        [sg.Text("ID", size=(15, 1)), sg.InputText(key="id")],
+        [sg.Text("ID", size=(15, 1)), sg.InputText(key="delete_id")],
         [sg.Button("Delete"), sg.Button("Cancel")],
     ]
-    return sg.Window("Update a book", layout, modal=True, finalize=True)
+    return sg.Window("Delete a book", layout, modal=True, finalize=True)
+
+
+def detail_book_view():
+    db = sqlite3.connect("ebookstore")
+    cursor = db.cursor()
+    cursor.execute("""Select * FROM books""")
+    global lastId
+    # print all the books in the database
+    books_text = ""
+    for row in cursor:
+        books_text = books_text + "ID: {0} Title: {1} ".format(row[0], row[1]) + "\n"
+        # this will get the last id number
+        lastId = row[0]
+    db.close()
+    layout = [
+        [sg.Text("You have selected option 4")],
+        [sg.Text(books_text)],
+        [sg.Text("Please enter the name of the title: ")],
+        [sg.Text("Title", size=(15, 1)), sg.InputText(key="detail_title")],
+        [sg.Button("View"), sg.Button("Cancel")],
+    ]
+
+    return sg.Window("Detail view", layout, modal=True, finalize=True)
 
 
 # Create the window
@@ -120,7 +149,7 @@ while True:
         elif window == window1:  # if closing win 1, exit program
             break
     if event == "1":
-        window2 = add_book()
+        window2 = add_book_view()
     # add logic to the database
     if event == "Add":
         ready_to_commit = True
@@ -136,8 +165,9 @@ while True:
             try:
                 int(values["qnty"])
             except:
-                sg.Popup("Quantity is Not an interger.")
+                sg.Popup("Quantity is not an interger.")
                 ready_to_commit = False
+        # write to database if all data is correct
         if ready_to_commit:
             try:
                 db = sqlite3.connect("ebookstore")
@@ -155,6 +185,46 @@ while True:
                 sg.Popup(e)
             finally:
                 db.close()
+
+    if event == "3":
+        window2 = delete_book_view()
+    if event == "Delete":
+        ready_to_commit = True
+        delete_id = values["delete_id"]
+        if delete_id == "":
+            sg.Popup("Empty field detected, Please populate every field.")
+            ready_to_commit = False
+        else:
+            # check if the id entered is an interger
+            try:
+                int_test = int(delete_id)
+            except:
+                sg.Popup("ID entered is not an interger.")
+                ready_to_commit = False
+        db = sqlite3.connect("ebookstore")
+        cursor = db.cursor()
+        print(type(int_test))
+        # check if the Id exist
+        if delete_id != "" and isinstance(int_test, int):
+            cursor.execute("""SELECT id FROM books WHERE id = ?""", (delete_id,))
+            data = cursor.fetchall()
+            if len(data) == 0:
+                sg.Popup("ID entered deos not exist.")
+                ready_to_commit = False
+        if ready_to_commit:
+            try:
+                cursor.execute("""DELETE FROM books WHERE id = ?""", (delete_id,))
+                db.commit()
+                sg.Popup("Request has been send succesfully")
+                window.close()
+            except Exception as e:
+                sg.Popup(e)
+        db.close()
+
+    if event == "4":
+        window2 = detail_book_view()
+    if event == "View":
+        sg.Popup("view")
 
 window.close()
 
@@ -290,28 +360,28 @@ while user_input != 0:
             # close db connection
             db.close()
         # delete a book in the database
-        if user_input == 3:
-            db = sqlite3.connect("ebookstore")
-            cursor = db.cursor()
-            # print all books id and title for the user to choose from
-            cursor.execute("""Select * FROM books""")
-            for row in cursor:
-                print("ID: {0} Title: {1} ".format(row[0], row[1]))
-            print("\n")
-            # ask user the id of the book they want to delete
-            try:
-                id_to_delete = int(
-                    input(
-                        "Please enter they id of the book you wish to delete from the database: "
-                    )
-                )
-                cursor.execute("""DELETE FROM books WHERE id = ?""", (id_to_delete,))
-                db.commit()
-                print("Entry has been deleted")
-            except Exception as e:
-                print(e)
-            # close db connection
-            db.close()
+        # if user_input == 3:
+        #     db = sqlite3.connect("ebookstore")
+        #     cursor = db.cursor()
+        #     # print all books id and title for the user to choose from
+        #     cursor.execute("""Select * FROM books""")
+        #     for row in cursor:
+        #         print("ID: {0} Title: {1} ".format(row[0], row[1]))
+        #     print("\n")
+        #     # ask user the id of the book they want to delete
+        #     try:
+        #         id_to_delete = int(
+        #             input(
+        #                 "Please enter they id of the book you wish to delete from the database: "
+        #             )
+        #         )
+        #         cursor.execute("""DELETE FROM books WHERE id = ?""", (id_to_delete,))
+        #         db.commit()
+        #         print("Entry has been deleted")
+        #     except Exception as e:
+        #         print(e)
+        #     # close db connection
+        #     db.close()
         # search a specific book detail in the database
         if user_input == 4:
             db = sqlite3.connect("ebookstore")
