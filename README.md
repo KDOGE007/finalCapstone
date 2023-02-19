@@ -19,5 +19,3 @@ It is a CRUD program so the user can manipulate this database as they wish via t
 ## Installation
 
 _Python, SQlite3, and PySimpleGUI must be installed in the local machhine._
-
-The program can be execute via the terminal.
