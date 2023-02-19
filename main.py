@@ -1,5 +1,5 @@
 import sqlite3
-import PySimpleGUIWeb as sg
+import PySimpleGUI as sg
 
 
 def database_start():
