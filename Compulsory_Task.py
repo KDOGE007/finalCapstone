@@ -116,19 +116,20 @@ def detail_book_view():
     db = sqlite3.connect("ebookstore")
     cursor = db.cursor()
     cursor.execute("""Select * FROM books""")
-    global lastId
     # print all the books in the database
     books_text = ""
     for row in cursor:
         books_text = books_text + "ID: {0} Title: {1} ".format(row[0], row[1]) + "\n"
         # this will get the last id number
-        lastId = row[0]
     db.close()
     layout = [
         [sg.Text("You have selected option 4")],
         [sg.Text(books_text)],
         [sg.Text("Please enter the name of the title: ")],
-        [sg.Text("Title", size=(15, 1)), sg.InputText(key="detail_title")],
+        [
+            sg.Text("Title (case sensitive)", size=(15, 1)),
+            sg.InputText(key="detail_title"),
+        ],
         [sg.Button("View"), sg.Button("Cancel")],
     ]
 
@@ -150,7 +151,7 @@ while True:
             break
     if event == "1":
         window2 = add_book_view()
-    # add logic to the database
+    # add's logic to the database
     if event == "Add":
         ready_to_commit = True
         title = values["title"]
@@ -203,7 +204,6 @@ while True:
                 ready_to_commit = False
         db = sqlite3.connect("ebookstore")
         cursor = db.cursor()
-        print(type(int_test))
         # check if the Id exist
         if delete_id != "" and isinstance(int_test, int):
             cursor.execute("""SELECT id FROM books WHERE id = ?""", (delete_id,))
@@ -224,58 +224,39 @@ while True:
     if event == "4":
         window2 = detail_book_view()
     if event == "View":
-        sg.Popup("view")
+        try:
+            db = sqlite3.connect("ebookstore")
+            cursor = db.cursor()
+            detail_title = values["detail_title"]
+            search_term = detail_title.strip()
+            # check if the query exist in the database
+            cursor.execute(
+                """SELECT Title FROM books WHERE Title = ?""", (search_term,)
+            )
+            data = cursor.fetchall()
+            if len(data) == 0:
+                sg.Popup("There is no records in the database with that title.")
+            else:
+                cursor.execute(
+                    """SELECT * FROM books WHERE Title = ?""", (search_term,)
+                )
+                for row in cursor:
+                    sg.Popup(
+                        "ID: {0} Title: {1} \tAuthor: {2} Qty: {3}".format(
+                            row[0], row[1], row[2], row[3]
+                        )
+                    )
+        except Exception as e:
+            sg.Popup(e)
+        finally:
+            db.close()
 
 window.close()
 
-
 # # main menu
 user_input = None
-
 while user_input != 0:
     try:
-        # user_input = int(
-        #     input(
-        #         """Please enter the operation number:
-        #                 1 - Enter book
-        #                 2 - Update book
-        #                 3 - Delete book
-        #                 4 - Search books
-        #                 0 - Exit
-        #                 :"""
-        #     )
-        # )
-
-        # if user_input > 4 or user_input < 0:
-        #     print("Invalid input please enter a number from 0 to 4")
-        # else:
-        # add a book to the database
-        # if user_input == 1:
-        #     db = sqlite3.connect("ebookstore")
-        #     cursor = db.cursor()
-        #     cursor.execute("""Select * FROM books""")
-        #     # print all the books in the database
-        #     for row in cursor:
-        #         print("ID: {0} Title: {1} ".format(row[0], row[1]))
-        #         # this will get the last id number
-        #         id = row[0]
-        #     print("\n")
-        #     # new id
-        #     id = id + 1
-        #     title_to_add = input("Please enter the title you like to add: ")
-        #     author_to_add = input("Please enter the Author of the title: ")
-        #     try:
-        #         qnty_to_add = int(input("Please enter the quantity of the book: "))
-        #         cursor.execute(
-        #             """INSERT INTO books (id, Title, Author, Qty) VALUES(?,?,?,?)""",
-        #             (id, title_to_add, author_to_add, qnty_to_add),
-        #         )
-        #         db.commit()
-        #         print("Entry has been added")
-        #     except Exception as e:
-        #         print(e)
-        #     db.close()
-        # update a book in the database
         if user_input == 2:
             db = sqlite3.connect("ebookstore")
             cursor = db.cursor()
@@ -359,30 +340,6 @@ while user_input != 0:
                 print(e)
             # close db connection
             db.close()
-        # delete a book in the database
-        # if user_input == 3:
-        #     db = sqlite3.connect("ebookstore")
-        #     cursor = db.cursor()
-        #     # print all books id and title for the user to choose from
-        #     cursor.execute("""Select * FROM books""")
-        #     for row in cursor:
-        #         print("ID: {0} Title: {1} ".format(row[0], row[1]))
-        #     print("\n")
-        #     # ask user the id of the book they want to delete
-        #     try:
-        #         id_to_delete = int(
-        #             input(
-        #                 "Please enter they id of the book you wish to delete from the database: "
-        #             )
-        #         )
-        #         cursor.execute("""DELETE FROM books WHERE id = ?""", (id_to_delete,))
-        #         db.commit()
-        #         print("Entry has been deleted")
-        #     except Exception as e:
-        #         print(e)
-        #     # close db connection
-        #     db.close()
-        # search a specific book detail in the database
         if user_input == 4:
             db = sqlite3.connect("ebookstore")
             cursor = db.cursor()
